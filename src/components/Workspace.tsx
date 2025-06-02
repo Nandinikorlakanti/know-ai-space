@@ -8,6 +8,8 @@ import { ThemeToggle } from './ThemeToggle';
 import { KnowledgeGraph } from './KnowledgeGraph';
 import { AILinker } from './AILinker';
 import { GraphTrigger } from './GraphTrigger';
+import { AISearchInterface } from './AISearchInterface';
+import { AISearchTrigger } from './AISearchTrigger';
 import { cn } from '@/lib/utils';
 
 interface WorkspaceProps {
@@ -19,13 +21,14 @@ export const Workspace: React.FC<WorkspaceProps> = ({ className }) => {
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [knowledgeGraphOpen, setKnowledgeGraphOpen] = useState(false);
   const [aiLinkerActive, setAiLinkerActive] = useState(false);
+  const [aiSearchOpen, setAiSearchOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState({
     id: '1',
     title: 'Welcome to Your Workspace',
     path: ['Home', 'Getting Started']
   });
 
-  // Handle Cmd+K for command palette
+  // Handle keyboard shortcuts
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
@@ -36,6 +39,10 @@ export const Workspace: React.FC<WorkspaceProps> = ({ className }) => {
         e.preventDefault();
         setKnowledgeGraphOpen(true);
       }
+      if ((e.metaKey || e.ctrlKey) && e.key === ' ') {
+        e.preventDefault();
+        setAiSearchOpen(true);
+      }
     };
 
     document.addEventListener('keydown', handleKeyDown);
@@ -44,7 +51,6 @@ export const Workspace: React.FC<WorkspaceProps> = ({ className }) => {
 
   const handleLinkSuggestion = (pageId: string, text: string) => {
     console.log('Creating link to:', pageId, text);
-    // Here you would implement the actual linking logic
     setAiLinkerActive(false);
   };
 
@@ -69,6 +75,7 @@ export const Workspace: React.FC<WorkspaceProps> = ({ className }) => {
         <nav className="h-16 border-b border-white/10 backdrop-blur-md bg-white/5 flex items-center justify-between px-6">
           <Breadcrumbs path={currentPage.path} />
           <div className="flex items-center gap-4">
+            <AISearchTrigger onOpenSearch={() => setAiSearchOpen(true)} />
             <GraphTrigger
               onOpenGraph={() => setKnowledgeGraphOpen(true)}
               onToggleAILinker={() => setAiLinkerActive(!aiLinkerActive)}
@@ -109,6 +116,12 @@ export const Workspace: React.FC<WorkspaceProps> = ({ className }) => {
         cursorPosition={0}
         onLinkSuggestion={handleLinkSuggestion}
         onDismiss={() => setAiLinkerActive(false)}
+      />
+
+      {/* AI Search Interface */}
+      <AISearchInterface
+        isOpen={aiSearchOpen}
+        onClose={() => setAiSearchOpen(false)}
       />
     </div>
   );
