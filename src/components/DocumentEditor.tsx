@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Plus, GripVertical, MoreHorizontal } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -13,17 +12,15 @@ interface Block {
 interface DocumentEditorProps {
   pageId: string;
   title: string;
+  onAICardClick: (feature: 'linker' | 'graph' | 'tags' | 'search') => void;
 }
 
-export const DocumentEditor: React.FC<DocumentEditorProps> = ({ pageId, title }) => {
+export const DocumentEditor: React.FC<DocumentEditorProps> = ({ pageId, title, onAICardClick }) => {
   const [blocks, setBlocks] = useState<Block[]>([
-    { id: '1', type: 'heading', content: 'Welcome to Your Workspace', level: 1 },
-    { id: '2', type: 'paragraph', content: 'This is your personal workspace where you can create, organize, and collaborate on documents with the power of AI.' },
-    { id: '3', type: 'heading', content: 'Getting Started', level: 2 },
-    { id: '4', type: 'list', content: 'Create new pages and organize them in the sidebar' },
-    { id: '5', type: 'list', content: 'Use the command palette (Cmd+K) for quick actions' },
-    { id: '6', type: 'list', content: 'Let AI help you connect ideas and find relevant content' },
-    { id: '7', type: 'quote', content: 'AI-powered knowledge management makes your ideas more connected and discoverable.' },
+    { id: '1', type: 'heading', content: 'AI-Powered Knowledge Management', level: 1 },
+    { id: '2', type: 'paragraph', content: 'Welcome to your intelligent workspace where AI enhances your productivity and knowledge organization.' },
+    { id: '3', type: 'heading', content: 'Key Features', level: 2 },
+    { id: '12', type: 'quote', content: 'Transform your workspace into an intelligent knowledge hub with AI-powered features that understand and enhance your content.' },
   ]);
 
   const [draggedBlock, setDraggedBlock] = useState<string | null>(null);
@@ -205,23 +202,6 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({ pageId, title })
             placeholder="Untitled"
           />
         </div>
-        
-        {/* AI Suggestions Banner */}
-        <div className="bg-gradient-to-r from-[#FFB800]/20 to-[#00D9FF]/20 border border-[#FFB800]/30 rounded-lg p-4 mb-6">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-gradient-to-r from-[#FFB800] to-[#00D9FF] rounded-full flex items-center justify-center">
-              <span className="text-sm">🤖</span>
-            </div>
-            <div className="flex-1">
-              <p className="text-sm text-white/90">
-                <strong>AI Assistant:</strong> I found 3 related pages that might be helpful. Would you like me to suggest some connections?
-              </p>
-            </div>
-            <button className="px-4 py-2 bg-[#00D9FF]/20 border border-[#00D9FF]/50 rounded-md text-sm hover:bg-[#00D9FF]/30 transition-colors duration-200">
-              Show Links
-            </button>
-          </div>
-        </div>
       </div>
 
       {/* Document Content */}
@@ -229,6 +209,81 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({ pageId, title })
         {blocks.map((block, index) => (
           <BlockComponent key={block.id} block={block} index={index} />
         ))}
+        
+        {/* AI Features Cards Container */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+          {/* AI Auto-Linker Card */}
+          <div 
+            className="bg-gradient-to-br from-[#1E1B4B]/90 to-[#000000]/90 backdrop-blur-xl border border-[#00D9FF]/30 rounded-xl p-6 hover:border-[#00D9FF]/50 transition-all duration-300 cursor-pointer"
+            onClick={() => onAICardClick('linker')}
+          >
+            <div className="flex items-center gap-4 mb-4">
+              <div className="w-12 h-12 bg-[#00D9FF]/20 rounded-lg flex items-center justify-center">
+                <span className="text-2xl">🤖</span>
+              </div>
+              <h3 className="text-xl font-semibold text-white">AI Auto-Linker</h3>
+            </div>
+            <p className="text-[#B8C5D1] mb-4">As you write, our AI automatically suggests linking to other related pages, creating a connected network of knowledge.</p>
+            <div className="flex items-center gap-2 text-sm text-[#00D9FF]">
+              <span>Learn More</span>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"/></svg>
+            </div>
+          </div>
+
+          {/* Knowledge Graph Builder Card */}
+          <div 
+            className="bg-gradient-to-br from-[#1E1B4B]/90 to-[#000000]/90 backdrop-blur-xl border border-[#FFB800]/30 rounded-xl p-6 hover:border-[#FFB800]/50 transition-all duration-300 cursor-pointer"
+            onClick={() => onAICardClick('graph')}
+          >
+            <div className="flex items-center gap-4 mb-4">
+              <div className="w-12 h-12 bg-[#FFB800]/20 rounded-lg flex items-center justify-center">
+                <span className="text-2xl">📊</span>
+              </div>
+              <h3 className="text-xl font-semibold text-white">Knowledge Graph Builder</h3>
+            </div>
+            <p className="text-[#B8C5D1] mb-4">Visualize your document relationships as a live, interactive graph. See how your ideas connect and evolve over time.</p>
+            <div className="flex items-center gap-2 text-sm text-[#FFB800]">
+              <span>View graph</span>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"/></svg>
+            </div>
+          </div>
+
+          {/* Auto Tag Generator Card */}
+          <div 
+            className="bg-gradient-to-br from-[#1E1B4B]/90 to-[#000000]/90 backdrop-blur-xl border border-[#8B5CF6]/30 rounded-xl p-6 hover:border-[#8B5CF6]/50 transition-all duration-300 cursor-pointer"
+            onClick={() => onAICardClick('tags')}
+          >
+            <div className="flex items-center gap-4 mb-4">
+              <div className="w-12 h-12 bg-[#8B5CF6]/20 rounded-lg flex items-center justify-center">
+                <span className="text-2xl">🏷️</span>
+              </div>
+              <h3 className="text-xl font-semibold text-white">Auto Tag Generator</h3>
+            </div>
+            <p className="text-[#B8C5D1] mb-4">AI generates semantic tags for every page, enabling smarter search and better content organization.</p>
+            <div className="flex items-center gap-2 text-sm text-[#8B5CF6]">
+              <span>Generate tags</span>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"/></svg>
+            </div>
+          </div>
+
+          {/* Question Answering Card */}
+          <div 
+            className="bg-gradient-to-br from-[#1E1B4B]/90 to-[#000000]/90 backdrop-blur-xl border border-[#F59E0B]/30 rounded-xl p-6 hover:border-[#F59E0B]/50 transition-all duration-300 cursor-pointer"
+            onClick={() => onAICardClick('search')}
+          >
+            <div className="flex items-center gap-4 mb-4">
+              <div className="w-12 h-12 bg-[#F59E0B]/20 rounded-lg flex items-center justify-center">
+                <span className="text-2xl">❓</span>
+              </div>
+              <h3 className="text-xl font-semibold text-white">Question Answering</h3>
+            </div>
+            <p className="text-[#B8C5D1] mb-4">Ask questions about your workspace content. Our AI will find and present the most relevant information from your documents.</p>
+            <div className="flex items-center gap-2 text-sm text-[#F59E0B]">
+              <span>Ask a question</span>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"/></svg>
+            </div>
+          </div>
+        </div>
         
         {/* Add Block Button */}
         <button 

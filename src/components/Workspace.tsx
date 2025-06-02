@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Sidebar } from './Sidebar';
 import { DocumentEditor } from './DocumentEditor';
@@ -93,6 +92,14 @@ export const Workspace: React.FC<WorkspaceProps> = ({ className }) => {
           <DocumentEditor 
             pageId={currentPage.id}
             title={currentPage.title}
+            onAICardClick={(feature) => {
+              if (feature === 'linker') setAiLinkerActive(true);
+              if (feature === 'graph') setKnowledgeGraphOpen(true);
+              if (feature === 'search') setAiSearchOpen(true);
+              // Note: Auto Tag Generator doesn't have a dedicated open state in Workspace yet
+              // You might need to add state and logic for it if needed.
+              console.log(`Clicked on ${feature} card`);
+            }}
           />
         </main>
       </div>
