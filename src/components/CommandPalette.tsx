@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Search, FileText, Plus, Settings, Zap } from 'lucide-react';
+import { Search, FileText, Plus, Settings, Zap, LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface CommandPaletteProps {
@@ -12,7 +12,7 @@ interface Command {
   id: string;
   title: string;
   description: string;
-  icon: React.ComponentType<{ size?: number; className?: string }>;
+  icon: LucideIcon;
   action: () => void;
   category: 'pages' | 'actions' | 'ai';
 }
