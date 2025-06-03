@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Sidebar } from './Sidebar';
 import { DocumentEditor } from './DocumentEditor';
@@ -53,6 +54,14 @@ export const Workspace: React.FC<WorkspaceProps> = ({ className }) => {
     setAiLinkerActive(false);
   };
 
+  const handlePageSelect = (page: { id: string; title: string; path: string }) => {
+    setCurrentPage({
+      id: page.id,
+      title: page.title,
+      path: [page.path] // Convert string to array for breadcrumbs
+    });
+  };
+
   return (
     <div className={cn(
       "min-h-screen w-full bg-gradient-to-br from-[#1A1D29] to-[#0F1419] text-white overflow-hidden",
@@ -62,7 +71,7 @@ export const Workspace: React.FC<WorkspaceProps> = ({ className }) => {
       <Sidebar 
         isOpen={sidebarOpen}
         onToggle={() => setSidebarOpen(!sidebarOpen)}
-        onPageSelect={setCurrentPage}
+        onPageSelect={handlePageSelect}
       />
 
       {/* Main Content Area */}
