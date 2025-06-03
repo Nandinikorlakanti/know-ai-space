@@ -1,4 +1,7 @@
-Flask
-transformers
-torch
-supabase 
+
+Flask==2.3.3
+flask-cors==4.0.0
+transformers==4.35.2
+torch==2.1.0
+sentence-transformers==2.2.2
+numpy==1.24.3

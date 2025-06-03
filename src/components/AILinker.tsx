@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Zap, Link, X, Check, Brain, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -31,52 +30,43 @@ export const AILinker: React.FC<AILinkerProps> = ({
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
-  // Sample suggestions for demonstration
-  const generateSuggestions = (text: string): LinkSuggestion[] => {
-    const sampleSuggestions: LinkSuggestion[] = [
-      {
-        id: '1',
-        targetPage: 'Machine Learning Fundamentals',
-        confidence: 0.92,
-        reason: 'Semantic similarity detected',
-        preview: 'This page covers the core concepts of machine learning algorithms...',
-        type: 'semantic'
-      },
-      {
-        id: '2',
-        targetPage: 'Neural Network Architecture',
-        confidence: 0.87,
-        reason: 'Related concepts found',
-        preview: 'Deep dive into neural network structures and design patterns...',
-        type: 'related'
-      },
-      {
-        id: '3',
-        targetPage: 'AI Research Notes',
-        confidence: 0.75,
-        reason: 'Contextual relevance',
-        preview: 'Collection of research papers and insights on artificial intelligence...',
-        type: 'contextual'
-      }
-    ];
+  const generateSuggestions = async (text: string): Promise<LinkSuggestion[]> => {
+    // For now, use the current workspace - in a real implementation,
+    // you'd get this from context or props
+    const currentWorkspace = 'default-workspace';
+    
+    try {
+      const response = await fetch('http://localhost:5000/extract_links', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          workspace: currentWorkspace,
+          text: text,
+        }),
+      });
 
-    // Filter based on current text context
-    return sampleSuggestions.filter(suggestion => {
-      const textLower = text.toLowerCase();
-      return textLower.includes('ai') || 
-             textLower.includes('machine learning') || 
-             textLower.includes('neural') ||
-             textLower.includes('algorithm');
-    });
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error('Failed to get suggestions:', data.error);
+        return [];
+      }
+
+      return data.suggestions || [];
+    } catch (error) {
+      console.error('Error fetching suggestions:', error);
+      return [];
+    }
   };
 
   useEffect(() => {
     if (isActive && currentText.length > 10) {
       setIsAnalyzing(true);
       
-      // Simulate AI analysis delay
-      const timer = setTimeout(() => {
-        const newSuggestions = generateSuggestions(currentText);
+      const timer = setTimeout(async () => {
+        const newSuggestions = await generateSuggestions(currentText);
         setSuggestions(newSuggestions);
         setSelectedIndex(0);
         setIsAnalyzing(false);

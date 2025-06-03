@@ -3,18 +3,11 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { WorkspaceSelector } from '@/components/workspace/WorkspaceSelector';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
-import { Send, FileText, Home, LogOut, User } from 'lucide-react';
+import { Send, FileText, Home, LogOut, User, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-
-interface Workspace {
-  id: string;
-  name: string;
-  description: string;
-}
 
 interface Message {
   id: string;
@@ -27,36 +20,17 @@ export const QuestionAnswering: React.FC = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [selectedWorkspace, setSelectedWorkspace] = useState<string>('');
   const [question, setQuestion] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    fetchWorkspaces();
     const workspaceFromUrl = searchParams.get('workspace');
     if (workspaceFromUrl) {
       setSelectedWorkspace(workspaceFromUrl);
     }
   }, [searchParams]);
-
-  const fetchWorkspaces = async () => {
-    if (!user) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('workspaces')
-        .select('id, name, description')
-        .eq('owner_id', user.id);
-
-      if (error) throw error;
-      setWorkspaces(data || []);
-    } catch (error) {
-      console.error('Error fetching workspaces:', error);
-      toast.error('Failed to load workspaces');
-    }
-  };
 
   const handleSubmitQuestion = async () => {
     if (!question.trim() || !selectedWorkspace) {
@@ -76,20 +50,44 @@ export const QuestionAnswering: React.FC = () => {
     setIsLoading(true);
 
     try {
-      // Simulate AI response for now
-      setTimeout(() => {
-        const aiResponse: Message = {
-          id: (Date.now() + 1).toString(),
-          content: `Based on the documents in your workspace, here's what I found regarding: "${userMessage.content}". This is a simulated response. Integration with AI backend is pending.`,
-          isUser: false,
-          timestamp: new Date(),
-        };
-        setMessages(prev => [...prev, aiResponse]);
-        setIsLoading(false);
-      }, 2000);
+      const response = await fetch('http://localhost:5000/ask', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          workspace: selectedWorkspace,
+          question: userMessage.content,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to get answer');
+      }
+
+      const aiResponse: Message = {
+        id: (Date.now() + 1).toString(),
+        content: data.answer,
+        isUser: false,
+        timestamp: new Date(),
+      };
+
+      setMessages(prev => [...prev, aiResponse]);
     } catch (error) {
       console.error('Error processing question:', error);
-      toast.error('Failed to process your question');
+      toast.error('Failed to process your question. Make sure the backend is running.');
+      
+      // Add error message to chat
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        content: 'Sorry, I encountered an error while processing your question. Please make sure the backend server is running and try again.',
+        isUser: false,
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
       setIsLoading(false);
     }
   };
@@ -126,7 +124,7 @@ export const QuestionAnswering: React.FC = () => {
                   <Button 
                     variant="outline" 
                     size="sm" 
-                    onClick={() => navigate('/')}
+                    onClick={() => navigate('/dashboard')}
                     className="text-white border-white/20 hover:bg-white/10"
                   >
                     <Home className="h-4 w-4 mr-2" />
@@ -163,18 +161,11 @@ export const QuestionAnswering: React.FC = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <Select value={selectedWorkspace} onValueChange={setSelectedWorkspace}>
-              <SelectTrigger className="bg-white/5 border-white/20 text-white">
-                <SelectValue placeholder="Choose a workspace to analyze" />
-              </SelectTrigger>
-              <SelectContent>
-                {workspaces.map((workspace) => (
-                  <SelectItem key={workspace.id} value={workspace.id}>
-                    {workspace.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <WorkspaceSelector
+              selectedWorkspaceId={selectedWorkspace}
+              onWorkspaceChange={setSelectedWorkspace}
+              className="bg-white/5 border-white/20 text-white"
+            />
           </CardContent>
         </Card>
 
@@ -203,7 +194,7 @@ export const QuestionAnswering: React.FC = () => {
                           : 'bg-white/10 text-white'
                       }`}
                     >
-                      <p className="text-sm">{message.content}</p>
+                      <p className="text-sm whitespace-pre-wrap">{message.content}</p>
                       <p className="text-xs opacity-70 mt-1">
                         {message.timestamp.toLocaleTimeString()}
                       </p>
@@ -214,11 +205,9 @@ export const QuestionAnswering: React.FC = () => {
               {isLoading && (
                 <div className="flex justify-start">
                   <div className="bg-white/10 text-white max-w-xs lg:max-w-md px-4 py-2 rounded-lg">
-                    <p className="text-sm">Thinking...</p>
-                    <div className="flex space-x-1 mt-2">
-                      <div className="w-2 h-2 bg-white rounded-full animate-bounce"></div>
-                      <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                      <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                    <div className="flex items-center space-x-2">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <p className="text-sm">Analyzing your documents...</p>
                     </div>
                   </div>
                 </div>
@@ -240,7 +229,11 @@ export const QuestionAnswering: React.FC = () => {
                 disabled={isLoading || !selectedWorkspace || !question.trim()}
                 className="bg-gradient-to-r from-[#00D9FF] to-[#FFB800] hover:opacity-90 text-black"
               >
-                <Send className="h-4 w-4" />
+                {isLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
               </Button>
             </div>
           </CardContent>
