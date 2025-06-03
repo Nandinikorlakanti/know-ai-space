@@ -259,6 +259,47 @@ export type Database = {
           },
         ]
       }
+      files: {
+        Row: {
+          content: string | null
+          file_path: string
+          file_size: number | null
+          file_type: string | null
+          id: string
+          name: string
+          upload_date: string | null
+          workspace_id: string | null
+        }
+        Insert: {
+          content?: string | null
+          file_path: string
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          name: string
+          upload_date?: string | null
+          workspace_id?: string | null
+        }
+        Update: {
+          content?: string | null
+          file_path?: string
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          name?: string
+          upload_date?: string | null
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "files_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       knowledge_graph_edges: {
         Row: {
           created_at: string | null
