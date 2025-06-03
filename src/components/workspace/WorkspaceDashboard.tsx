@@ -20,7 +20,7 @@ interface Workspace {
 }
 
 export const WorkspaceDashboard: React.FC = () => {
-  const { user, signOut } = useAuth();
+  const { user, signOut, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [loading, setLoading] = useState(true);
@@ -31,24 +31,40 @@ export const WorkspaceDashboard: React.FC = () => {
     if (!user) return;
 
     try {
+      console.log('Fetching workspaces for user:', user.id);
+      
       const { data, error } = await supabase
         .from('workspaces')
         .select(`
           id,
           name,
           description,
-          created_at,
-          files (count)
+          created_at
         `)
         .eq('owner_id', user.id)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching workspaces:', error);
+        throw error;
+      }
 
-      const workspacesWithCount = data.map(workspace => ({
-        ...workspace,
-        file_count: workspace.files?.[0]?.count || 0,
-      }));
+      console.log('Fetched workspaces:', data);
+
+      // Get file counts for each workspace
+      const workspacesWithCount = await Promise.all(
+        (data || []).map(async (workspace) => {
+          const { count } = await supabase
+            .from('files')
+            .select('*', { count: 'exact', head: true })
+            .eq('workspace_id', workspace.id);
+          
+          return {
+            ...workspace,
+            file_count: count || 0,
+          };
+        })
+      );
 
       setWorkspaces(workspacesWithCount);
     } catch (error) {
@@ -60,8 +76,10 @@ export const WorkspaceDashboard: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchWorkspaces();
-  }, [user]);
+    if (user && !authLoading) {
+      fetchWorkspaces();
+    }
+  }, [user, authLoading]);
 
   const handleDeleteWorkspace = async (workspaceId: string) => {
     try {
@@ -80,6 +98,10 @@ export const WorkspaceDashboard: React.FC = () => {
     }
   };
 
+  const handleWorkspaceCreated = () => {
+    fetchWorkspaces();
+  };
+
   const filteredWorkspaces = workspaces.filter(workspace =>
     workspace.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     workspace.description?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -93,7 +115,7 @@ export const WorkspaceDashboard: React.FC = () => {
     });
   };
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#1A1D29] to-[#0F1419] flex items-center justify-center">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-white"></div>
@@ -194,7 +216,7 @@ export const WorkspaceDashboard: React.FC = () => {
               <Card 
                 key={workspace.id} 
                 className="bg-white/5 border-white/10 hover:bg-white/10 transition-all duration-300 cursor-pointer"
-                onClick={() => navigate(`/workspace/${workspace.id}`)}
+                onClick={() => navigate(`/question-answering?workspace=${workspace.id}`)}
               >
                 <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
                   <div className="flex-1">
@@ -242,10 +264,8 @@ export const WorkspaceDashboard: React.FC = () => {
 
       <CreateWorkspaceDialog 
         isOpen={showCreateWorkspace} 
-        onClose={() => {
-          setShowCreateWorkspace(false);
-          fetchWorkspaces(); // Refresh the list
-        }}
+        onClose={() => setShowCreateWorkspace(false)}
+        onWorkspaceCreated={handleWorkspaceCreated}
       />
     </div>
   );

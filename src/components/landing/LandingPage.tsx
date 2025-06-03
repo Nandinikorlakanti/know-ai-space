@@ -5,12 +5,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useAuth } from '@/contexts/AuthContext';
 import { Plus, FileText, Brain, Link, Tags, LogOut, User } from 'lucide-react';
 import { CreateWorkspaceDialog } from '@/components/workspace/CreateWorkspaceDialog';
+import { AuthForm } from '@/components/auth/AuthForm';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 export const LandingPage: React.FC = () => {
   const { user, signOut } = useAuth();
   const [showCreateWorkspace, setShowCreateWorkspace] = useState(false);
+  const [showAuth, setShowAuth] = useState(false);
   const navigate = useNavigate();
 
   const features = [
@@ -18,27 +20,43 @@ export const LandingPage: React.FC = () => {
       icon: FileText,
       title: 'Question Answering',
       description: 'Ask questions about your documents and get AI-powered answers based on your workspace content.',
+      path: '/question-answering'
     },
     {
       icon: Link,
       title: 'AI Auto Linker',
       description: 'Automatically discover and create connections between related concepts across your documents.',
+      path: '/ai-linker'
     },
     {
       icon: Brain,
       title: 'Knowledge Graph',
       description: 'Visualize relationships and connections between concepts in your workspace with an interactive graph.',
+      path: '/knowledge-graph'
     },
     {
       icon: Tags,
       title: 'Auto Tag Generator',
       description: 'Automatically generate relevant tags for your documents to improve organization and searchability.',
+      path: '/auto-tag-generator'
     },
   ];
 
-  const handleFeatureClick = (feature: string) => {
-    navigate(`/${feature.toLowerCase().replace(' ', '-')}`);
+  const handleFeatureClick = (feature: { path: string }) => {
+    if (user) {
+      navigate(feature.path);
+    } else {
+      setShowAuth(true);
+    }
   };
+
+  const handleWorkspaceCreated = () => {
+    navigate('/dashboard');
+  };
+
+  if (showAuth) {
+    return <AuthForm onClose={() => setShowAuth(false)} />;
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#1A1D29] to-[#0F1419] text-white">
@@ -53,12 +71,20 @@ export const LandingPage: React.FC = () => {
             </div>
             
             <div className="flex items-center space-x-4">
-              {user && (
+              {user ? (
                 <>
                   <div className="flex items-center space-x-2 text-sm">
                     <User className="h-4 w-4" />
                     <span>{user.email}</span>
                   </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => navigate('/dashboard')}
+                    className="text-white border-white/20 hover:bg-white/10"
+                  >
+                    Dashboard
+                  </Button>
                   <Button 
                     variant="outline" 
                     size="sm" 
@@ -69,6 +95,15 @@ export const LandingPage: React.FC = () => {
                     Sign Out
                   </Button>
                 </>
+              ) : (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setShowAuth(true)}
+                  className="text-white border-white/20 hover:bg-white/10"
+                >
+                  Sign In
+                </Button>
               )}
             </div>
           </div>
@@ -93,19 +128,21 @@ export const LandingPage: React.FC = () => {
             <Button 
               size="lg" 
               className="bg-gradient-to-r from-[#00D9FF] to-[#FFB800] hover:opacity-90 text-black font-semibold px-8 py-3"
-              onClick={() => setShowCreateWorkspace(true)}
+              onClick={() => user ? setShowCreateWorkspace(true) : setShowAuth(true)}
             >
               <Plus className="mr-2 h-5 w-5" />
               Create Workspace
             </Button>
-            <Button 
-              size="lg" 
-              variant="outline" 
-              className="border-white/20 text-white hover:bg-white/10 px-8 py-3"
-              onClick={() => navigate('/dashboard')}
-            >
-              View Workspaces
-            </Button>
+            {user && (
+              <Button 
+                size="lg" 
+                variant="outline" 
+                className="border-white/20 text-white hover:bg-white/10 px-8 py-3"
+                onClick={() => navigate('/dashboard')}
+              >
+                View Workspaces
+              </Button>
+            )}
           </div>
         </div>
 
@@ -115,7 +152,7 @@ export const LandingPage: React.FC = () => {
             <Card 
               key={index} 
               className="bg-white/5 border-white/10 hover:bg-white/10 transition-all duration-300 cursor-pointer"
-              onClick={() => handleFeatureClick(feature.title)}
+              onClick={() => handleFeatureClick(feature)}
             >
               <CardHeader>
                 <div className="h-12 w-12 bg-gradient-to-r from-[#00D9FF] to-[#FFB800] rounded-lg flex items-center justify-center mb-4">
@@ -141,7 +178,7 @@ export const LandingPage: React.FC = () => {
           <Button 
             size="lg" 
             className="bg-gradient-to-r from-[#00D9FF] to-[#FFB800] hover:opacity-90 text-black font-semibold"
-            onClick={() => setShowCreateWorkspace(true)}
+            onClick={() => user ? setShowCreateWorkspace(true) : setShowAuth(true)}
           >
             Get Started Now
           </Button>
@@ -151,6 +188,7 @@ export const LandingPage: React.FC = () => {
       <CreateWorkspaceDialog 
         isOpen={showCreateWorkspace} 
         onClose={() => setShowCreateWorkspace(false)}
+        onWorkspaceCreated={handleWorkspaceCreated}
       />
     </div>
   );

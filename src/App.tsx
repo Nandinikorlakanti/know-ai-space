@@ -31,7 +31,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   return <>{children}</>;
 };
 
-const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+const AppRoutes = () => {
   const { user, loading } = useAuth();
 
   if (loading) {
@@ -42,23 +42,11 @@ const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     );
   }
 
-  if (user) {
-    return <Navigate to="/dashboard" replace />;
-  }
-
-  return <>{children}</>;
-};
-
-const AppRoutes = () => {
-  const { user } = useAuth();
-
   return (
     <Routes>
       <Route 
         path="/" 
-        element={
-          user ? <Navigate to="/dashboard" replace /> : <LandingPage />
-        } 
+        element={<LandingPage />}
       />
       <Route 
         path="/dashboard" 
@@ -70,6 +58,30 @@ const AppRoutes = () => {
       />
       <Route 
         path="/question-answering" 
+        element={
+          <ProtectedRoute>
+            <QuestionAnswering />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/ai-linker" 
+        element={
+          <ProtectedRoute>
+            <QuestionAnswering />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/knowledge-graph" 
+        element={
+          <ProtectedRoute>
+            <QuestionAnswering />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/auto-tag-generator" 
         element={
           <ProtectedRoute>
             <QuestionAnswering />

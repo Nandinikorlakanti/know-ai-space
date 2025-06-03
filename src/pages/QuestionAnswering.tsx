@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -7,7 +7,7 @@ import { WorkspaceSelector } from '@/components/workspace/WorkspaceSelector';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Send, Bot, User, ArrowLeft } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 
 interface Message {
@@ -20,10 +20,19 @@ interface Message {
 export const QuestionAnswering: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string>('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Set initial workspace from URL params
+  useEffect(() => {
+    const workspaceFromUrl = searchParams.get('workspace');
+    if (workspaceFromUrl) {
+      setSelectedWorkspaceId(workspaceFromUrl);
+    }
+  }, [searchParams]);
 
   const getWorkspaceFiles = async (workspaceId: string) => {
     try {

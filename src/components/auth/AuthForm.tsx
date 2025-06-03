@@ -7,11 +7,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ArrowLeft } from 'lucide-react';
 
-export const AuthForm: React.FC = () => {
-  const { signIn, signUp } = useAuth();
-  const [loading, setLoading] = useState(false);
+interface AuthFormProps {
+  onClose?: () => void;
+}
+
+export const AuthForm: React.FC<AuthFormProps> = ({ onClose }) => {
+  const { signIn, signUp, loading } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -28,40 +31,70 @@ export const AuthForm: React.FC = () => {
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    
+    if (!formData.email || !formData.password) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
     
     const { error } = await signIn(formData.email, formData.password);
     
     if (error) {
-      toast.error('Failed to sign in: ' + error.message);
+      console.error('Sign in error:', error);
+      if (error.message.includes('Invalid login credentials')) {
+        toast.error('Invalid email or password');
+      } else if (error.message.includes('Email not confirmed')) {
+        toast.error('Please check your email and confirm your account');
+      } else {
+        toast.error('Failed to sign in: ' + error.message);
+      }
     } else {
       toast.success('Successfully signed in!');
+      if (onClose) onClose();
     }
-    
-    setLoading(false);
   };
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    
+    if (!formData.email || !formData.password || !formData.firstName || !formData.lastName) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+
+    if (formData.password.length < 6) {
+      toast.error('Password must be at least 6 characters long');
+      return;
+    }
     
     const { error } = await signUp(formData.email, formData.password, formData.firstName, formData.lastName);
     
     if (error) {
-      toast.error('Failed to sign up: ' + error.message);
+      console.error('Sign up error:', error);
+      if (error.message.includes('User already registered')) {
+        toast.error('An account with this email already exists');
+      } else {
+        toast.error('Failed to sign up: ' + error.message);
+      }
     } else {
       toast.success('Successfully signed up! Please check your email to verify your account.');
+      if (onClose) onClose();
     }
-    
-    setLoading(false);
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#1A1D29] to-[#0F1419] p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">Welcome</CardTitle>
-          <CardDescription className="text-center">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-2xl font-bold">Welcome</CardTitle>
+            {onClose && (
+              <Button variant="ghost" size="sm" onClick={onClose}>
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+          <CardDescription>
             Sign in to your account or create a new one
           </CardDescription>
         </CardHeader>
@@ -84,6 +117,7 @@ export const AuthForm: React.FC = () => {
                     value={formData.email}
                     onChange={handleInputChange}
                     required
+                    disabled={loading}
                   />
                 </div>
                 <div className="space-y-2">
@@ -96,6 +130,7 @@ export const AuthForm: React.FC = () => {
                     value={formData.password}
                     onChange={handleInputChange}
                     required
+                    disabled={loading}
                   />
                 </div>
                 <Button type="submit" className="w-full" disabled={loading}>
@@ -117,6 +152,7 @@ export const AuthForm: React.FC = () => {
                       value={formData.firstName}
                       onChange={handleInputChange}
                       required
+                      disabled={loading}
                     />
                   </div>
                   <div className="space-y-2">
@@ -128,6 +164,7 @@ export const AuthForm: React.FC = () => {
                       value={formData.lastName}
                       onChange={handleInputChange}
                       required
+                      disabled={loading}
                     />
                   </div>
                 </div>
@@ -141,6 +178,7 @@ export const AuthForm: React.FC = () => {
                     value={formData.email}
                     onChange={handleInputChange}
                     required
+                    disabled={loading}
                   />
                 </div>
                 <div className="space-y-2">
@@ -149,10 +187,11 @@ export const AuthForm: React.FC = () => {
                     id="signup-password"
                     name="password"
                     type="password"
-                    placeholder="Create a password"
+                    placeholder="Create a password (min 6 characters)"
                     value={formData.password}
                     onChange={handleInputChange}
                     required
+                    disabled={loading}
                   />
                 </div>
                 <Button type="submit" className="w-full" disabled={loading}>
