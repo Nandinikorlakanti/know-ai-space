@@ -31,6 +31,14 @@ export const CreateWorkspaceDialog: React.FC<CreateWorkspaceDialogProps> = ({ is
     description: '',
   });
 
+  const generateSlug = (name: string) => {
+    return name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '')
+      .slice(0, 50) || 'workspace';
+  };
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData(prev => ({
       ...prev,
@@ -94,12 +102,15 @@ export const CreateWorkspaceDialog: React.FC<CreateWorkspaceDialogProps> = ({ is
     setLoading(true);
 
     try {
-      // Create workspace
+      const slug = generateSlug(formData.name);
+      
+      // Create workspace with required slug field
       const { data: workspace, error: workspaceError } = await supabase
         .from('workspaces')
         .insert({
           name: formData.name,
           description: formData.description,
+          slug: slug,
           owner_id: user.id,
         })
         .select()

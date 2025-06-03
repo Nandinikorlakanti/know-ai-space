@@ -5,7 +5,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
-import { AuthForm } from "@/components/auth/AuthForm";
 import { LandingPage } from "@/components/landing/LandingPage";
 import { WorkspaceDashboard } from "@/components/workspace/WorkspaceDashboard";
 import { QuestionAnswering } from "@/pages/QuestionAnswering";
@@ -26,7 +25,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   }
 
   if (!user) {
-    return <Navigate to="/auth" replace />;
+    return <Navigate to="/" replace />;
   }
 
   return <>{children}</>;
@@ -62,14 +61,6 @@ const AppRoutes = () => {
         } 
       />
       <Route 
-        path="/auth" 
-        element={
-          <PublicRoute>
-            <AuthForm />
-          </PublicRoute>
-        } 
-      />
-      <Route 
         path="/dashboard" 
         element={
           <ProtectedRoute>
@@ -100,15 +91,15 @@ const AppRoutes = () => {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <AuthProvider>
+    <BrowserRouter>
+      <AuthProvider>
+        <TooltipProvider>
           <AppRoutes />
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
+          <Toaster />
+          <Sonner />
+        </TooltipProvider>
+      </AuthProvider>
+    </BrowserRouter>
   </QueryClientProvider>
 );
 
