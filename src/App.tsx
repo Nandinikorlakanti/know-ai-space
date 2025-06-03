@@ -8,6 +8,9 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { LandingPage } from "@/components/landing/LandingPage";
 import { WorkspaceDashboard } from "@/components/workspace/WorkspaceDashboard";
 import { QuestionAnswering } from "@/pages/QuestionAnswering";
+import { AILinker } from "@/pages/AILinker";
+import { KnowledgeGraph } from "@/pages/KnowledgeGraph";
+import { AutoTagGenerator } from "@/pages/AutoTagGenerator";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 
@@ -68,7 +71,7 @@ const AppRoutes = () => {
         path="/ai-linker" 
         element={
           <ProtectedRoute>
-            <QuestionAnswering />
+            <AILinker />
           </ProtectedRoute>
         } 
       />
@@ -76,7 +79,7 @@ const AppRoutes = () => {
         path="/knowledge-graph" 
         element={
           <ProtectedRoute>
-            <QuestionAnswering />
+            <KnowledgeGraph />
           </ProtectedRoute>
         } 
       />
@@ -84,7 +87,7 @@ const AppRoutes = () => {
         path="/auto-tag-generator" 
         element={
           <ProtectedRoute>
-            <QuestionAnswering />
+            <AutoTagGenerator />
           </ProtectedRoute>
         } 
       />
@@ -103,15 +106,17 @@ const AppRoutes = () => {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <BrowserRouter>
-      <AuthProvider>
-        <TooltipProvider>
-          <AppRoutes />
-          <Toaster />
-          <Sonner />
-        </TooltipProvider>
-      </AuthProvider>
-    </BrowserRouter>
+    <TooltipProvider>
+      <BrowserRouter>
+        <AuthProvider>
+          <div className="min-h-screen w-full">
+            <AppRoutes />
+            <Toaster />
+            <Sonner />
+          </div>
+        </AuthProvider>
+      </BrowserRouter>
+    </TooltipProvider>
   </QueryClientProvider>
 );
 

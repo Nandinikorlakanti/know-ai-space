@@ -89,7 +89,7 @@ export const LandingPage: React.FC = () => {
                     variant="outline" 
                     size="sm" 
                     onClick={signOut}
-                    className="text-white border-white/20 hover:bg-white/10"
+                    className="text-white border-gray-600 bg-gray-800 hover:bg-gray-700"
                   >
                     <LogOut className="h-4 w-4 mr-2" />
                     Sign Out
@@ -160,11 +160,6 @@ export const LandingPage: React.FC = () => {
                 </div>
                 <CardTitle className="text-white">{feature.title}</CardTitle>
               </CardHeader>
-              <CardContent>
-                <CardDescription className="text-gray-300">
-                  {feature.description}
-                </CardDescription>
-              </CardContent>
             </Card>
           ))}
         </div>

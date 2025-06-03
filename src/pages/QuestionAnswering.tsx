@@ -1,14 +1,20 @@
 
 import React, { useState, useEffect } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent } from '@/components/ui/card';
-import { WorkspaceSelector } from '@/components/workspace/WorkspaceSelector';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { Send, Bot, User, ArrowLeft } from 'lucide-react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Send, FileText, Home, LogOut, User } from 'lucide-react';
 import { toast } from 'sonner';
+
+interface Workspace {
+  id: string;
+  name: string;
+  description: string;
+}
 
 interface Message {
   id: string;
@@ -18,215 +24,227 @@ interface Message {
 }
 
 export const QuestionAnswering: React.FC = () => {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string>('');
+  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
+  const [selectedWorkspace, setSelectedWorkspace] = useState<string>('');
+  const [question, setQuestion] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
-  const [inputValue, setInputValue] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Set initial workspace from URL params
   useEffect(() => {
+    fetchWorkspaces();
     const workspaceFromUrl = searchParams.get('workspace');
     if (workspaceFromUrl) {
-      setSelectedWorkspaceId(workspaceFromUrl);
+      setSelectedWorkspace(workspaceFromUrl);
     }
   }, [searchParams]);
 
-  const getWorkspaceFiles = async (workspaceId: string) => {
+  const fetchWorkspaces = async () => {
+    if (!user) return;
+
     try {
       const { data, error } = await supabase
-        .from('files')
-        .select('content, name')
-        .eq('workspace_id', workspaceId);
+        .from('workspaces')
+        .select('id, name, description')
+        .eq('owner_id', user.id);
 
       if (error) throw error;
-      return data || [];
+      setWorkspaces(data || []);
     } catch (error) {
-      console.error('Error fetching workspace files:', error);
-      return [];
+      console.error('Error fetching workspaces:', error);
+      toast.error('Failed to load workspaces');
     }
   };
 
-  const generateAnswer = async (question: string, context: string) => {
-    // This is a simple mock implementation
-    // In a real application, you would call your AI service here
-    const contextSnippet = context.substring(0, 500);
-    return `Based on your documents, ${question.toLowerCase().includes('what') ? 'here is what I found' : 'I can help with that'}. Context from your files suggests: "${contextSnippet}...". This is a simulated AI response based on your workspace content.`;
-  };
-
-  const handleSendMessage = async () => {
-    if (!inputValue.trim() || !selectedWorkspaceId || !user) return;
+  const handleSubmitQuestion = async () => {
+    if (!question.trim() || !selectedWorkspace) {
+      toast.error('Please select a workspace and enter a question');
+      return;
+    }
 
     const userMessage: Message = {
       id: Date.now().toString(),
-      content: inputValue,
+      content: question,
       isUser: true,
       timestamp: new Date(),
     };
 
     setMessages(prev => [...prev, userMessage]);
-    setInputValue('');
-    setLoading(true);
+    setQuestion('');
+    setIsLoading(true);
 
     try {
-      // Get files from selected workspace
-      const files = await getWorkspaceFiles(selectedWorkspaceId);
-      const context = files.map(file => file.content).join('\n');
-
-      if (files.length === 0) {
-        const errorMessage: Message = {
+      // Simulate AI response for now
+      setTimeout(() => {
+        const aiResponse: Message = {
           id: (Date.now() + 1).toString(),
-          content: "No files found in this workspace. Please upload some documents first.",
+          content: `Based on the documents in your workspace, here's what I found regarding: "${userMessage.content}". This is a simulated response. Integration with AI backend is pending.`,
           isUser: false,
           timestamp: new Date(),
         };
-        setMessages(prev => [...prev, errorMessage]);
-        return;
-      }
-
-      // Generate AI response based on context
-      const aiResponse = await generateAnswer(inputValue, context);
-      
-      const aiMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        content: aiResponse,
-        isUser: false,
-        timestamp: new Date(),
-      };
-
-      setMessages(prev => [...prev, aiMessage]);
+        setMessages(prev => [...prev, aiResponse]);
+        setIsLoading(false);
+      }, 2000);
     } catch (error) {
-      console.error('Error generating response:', error);
-      toast.error('Failed to generate response');
-    } finally {
-      setLoading(false);
+      console.error('Error processing question:', error);
+      toast.error('Failed to process your question');
+      setIsLoading(false);
     }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleSendMessage();
+      handleSubmitQuestion();
     }
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#1A1D29] to-[#0F1419] text-white">
-      {/* Header */}
-      <div className="border-b border-white/10 backdrop-blur-md bg-white/5">
-        <div className="max-w-4xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => navigate('/dashboard')}
-                className="text-white hover:bg-white/10"
+      {/* Navigation */}
+      <nav className="border-b border-white/10 backdrop-blur-md bg-white/5">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center">
+              <h1 
+                className="text-xl font-bold bg-gradient-to-r from-[#00D9FF] to-[#FFB800] bg-clip-text text-transparent cursor-pointer"
+                onClick={() => navigate('/')}
               >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back
-              </Button>
-              <h1 className="text-2xl font-bold">Question Answering</h1>
+                AI Workspace
+              </h1>
             </div>
-            <WorkspaceSelector
-              selectedWorkspaceId={selectedWorkspaceId}
-              onWorkspaceChange={setSelectedWorkspaceId}
-              className="w-64 bg-white/5 border-white/20 text-white"
-            />
+            
+            <div className="flex items-center space-x-4">
+              {user && (
+                <>
+                  <div className="flex items-center space-x-2 text-sm">
+                    <User className="h-4 w-4" />
+                    <span>{user.email}</span>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => navigate('/')}
+                    className="text-white border-white/20 hover:bg-white/10"
+                  >
+                    <Home className="h-4 w-4 mr-2" />
+                    Home
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={signOut}
+                    className="text-white border-gray-600 bg-gray-800 hover:bg-gray-700"
+                  >
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Sign Out
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      </nav>
 
-      {/* Chat Interface */}
-      <div className="max-w-4xl mx-auto px-4 py-6 flex flex-col h-[calc(100vh-120px)]">
-        {!selectedWorkspaceId ? (
-          <div className="flex-1 flex items-center justify-center">
-            <Card className="bg-white/5 border-white/10">
-              <CardContent className="p-8 text-center">
-                <Bot className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-                <h3 className="text-lg font-medium text-white mb-2">Select a Workspace</h3>
-                <p className="text-gray-400">Choose a workspace to start asking questions about your documents.</p>
-              </CardContent>
-            </Card>
-          </div>
-        ) : (
-          <>
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold mb-2">Question Answering</h1>
+          <p className="text-gray-300">Ask questions about your documents and get AI-powered answers</p>
+        </div>
+
+        {/* Workspace Selection */}
+        <Card className="bg-white/5 border-white/10 mb-6">
+          <CardHeader>
+            <CardTitle className="text-white flex items-center">
+              <FileText className="mr-2 h-5 w-5" />
+              Select Workspace
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Select value={selectedWorkspace} onValueChange={setSelectedWorkspace}>
+              <SelectTrigger className="bg-white/5 border-white/20 text-white">
+                <SelectValue placeholder="Choose a workspace to analyze" />
+              </SelectTrigger>
+              <SelectContent>
+                {workspaces.map((workspace) => (
+                  <SelectItem key={workspace.id} value={workspace.id}>
+                    {workspace.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </CardContent>
+        </Card>
+
+        {/* Chat Interface */}
+        <Card className="bg-white/5 border-white/10">
+          <CardHeader>
+            <CardTitle className="text-white">Ask Your Question</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto space-y-4 mb-4">
+            <div className="h-64 overflow-y-auto space-y-3 p-3 bg-black/20 rounded-lg">
               {messages.length === 0 ? (
-                <div className="flex items-center justify-center h-full">
-                  <Card className="bg-white/5 border-white/10">
-                    <CardContent className="p-8 text-center">
-                      <Bot className="h-12 w-12 mx-auto mb-4 text-blue-400" />
-                      <h3 className="text-lg font-medium text-white mb-2">Ready to Answer Your Questions</h3>
-                      <p className="text-gray-400">Ask me anything about the documents in your selected workspace.</p>
-                    </CardContent>
-                  </Card>
+                <div className="text-center text-gray-400 py-8">
+                  Select a workspace and ask a question to get started
                 </div>
               ) : (
                 messages.map((message) => (
-                  <div key={message.id} className={`flex ${message.isUser ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`flex items-start space-x-3 max-w-3xl ${message.isUser ? 'flex-row-reverse space-x-reverse' : ''}`}>
-                      <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${message.isUser ? 'bg-blue-600' : 'bg-gray-600'}`}>
-                        {message.isUser ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
-                      </div>
-                      <Card className={`${message.isUser ? 'bg-blue-600/20 border-blue-500/30' : 'bg-white/5 border-white/10'}`}>
-                        <CardContent className="p-4">
-                          <p className="text-white">{message.content}</p>
-                          <p className="text-xs text-gray-400 mt-2">
-                            {message.timestamp.toLocaleTimeString()}
-                          </p>
-                        </CardContent>
-                      </Card>
+                  <div
+                    key={message.id}
+                    className={`flex ${message.isUser ? 'justify-end' : 'justify-start'}`}
+                  >
+                    <div
+                      className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                        message.isUser
+                          ? 'bg-gradient-to-r from-[#00D9FF] to-[#FFB800] text-black'
+                          : 'bg-white/10 text-white'
+                      }`}
+                    >
+                      <p className="text-sm">{message.content}</p>
+                      <p className="text-xs opacity-70 mt-1">
+                        {message.timestamp.toLocaleTimeString()}
+                      </p>
                     </div>
                   </div>
                 ))
               )}
-              {loading && (
+              {isLoading && (
                 <div className="flex justify-start">
-                  <div className="flex items-start space-x-3 max-w-3xl">
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-600 flex items-center justify-center">
-                      <Bot className="h-4 w-4" />
+                  <div className="bg-white/10 text-white max-w-xs lg:max-w-md px-4 py-2 rounded-lg">
+                    <p className="text-sm">Thinking...</p>
+                    <div className="flex space-x-1 mt-2">
+                      <div className="w-2 h-2 bg-white rounded-full animate-bounce"></div>
+                      <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                      <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                     </div>
-                    <Card className="bg-white/5 border-white/10">
-                      <CardContent className="p-4">
-                        <div className="flex items-center space-x-2">
-                          <div className="flex space-x-1">
-                            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                          </div>
-                          <span className="text-gray-400 text-sm">AI is thinking...</span>
-                        </div>
-                      </CardContent>
-                    </Card>
                   </div>
                 </div>
               )}
             </div>
 
             {/* Input */}
-            <div className="flex space-x-4">
+            <div className="flex space-x-2">
               <Input
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
+                value={question}
+                onChange={(e) => setQuestion(e.target.value)}
                 onKeyPress={handleKeyPress}
                 placeholder="Ask a question about your documents..."
-                className="flex-1 bg-white/5 border-white/20 text-white placeholder-gray-400"
-                disabled={loading}
+                className="bg-white/5 border-white/20 text-white placeholder-gray-400"
+                disabled={isLoading || !selectedWorkspace}
               />
               <Button
-                onClick={handleSendMessage}
-                disabled={!inputValue.trim() || loading}
-                className="bg-blue-600 hover:bg-blue-700"
+                onClick={handleSubmitQuestion}
+                disabled={isLoading || !selectedWorkspace || !question.trim()}
+                className="bg-gradient-to-r from-[#00D9FF] to-[#FFB800] hover:opacity-90 text-black"
               >
                 <Send className="h-4 w-4" />
               </Button>
             </div>
-          </>
-        )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

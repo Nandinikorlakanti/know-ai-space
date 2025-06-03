@@ -1,10 +1,9 @@
-
 import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { Plus, FileText, Calendar, MoreVertical, Search, LogOut, User } from 'lucide-react';
+import { Plus, FileText, Calendar, MoreVertical, Search, LogOut, User, Home } from 'lucide-react';
 import { CreateWorkspaceDialog } from './CreateWorkspaceDialog';
 import { Input } from '@/components/ui/input';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -148,8 +147,17 @@ export const WorkspaceDashboard: React.FC = () => {
                   <Button 
                     variant="outline" 
                     size="sm" 
-                    onClick={signOut}
+                    onClick={() => navigate('/')}
                     className="text-white border-white/20 hover:bg-white/10"
+                  >
+                    <Home className="h-4 w-4 mr-2" />
+                    Home
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={signOut}
+                    className="text-white border-gray-600 bg-gray-800 hover:bg-gray-700"
                   >
                     <LogOut className="h-4 w-4 mr-2" />
                     Sign Out
