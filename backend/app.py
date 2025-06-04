@@ -6,6 +6,8 @@ import sys
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import logging
+import re
+from collections import Counter
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -17,9 +19,10 @@ PROJECT_ROOT = Path(__file__).parent.parent.absolute()
 # Initialize pipelines globally
 qa_pipeline = None
 feature_extraction_pipeline = None
+zero_shot_classifier = None
 
 def initialize_models():
-    global qa_pipeline, feature_extraction_pipeline
+    global qa_pipeline, feature_extraction_pipeline, zero_shot_classifier
     try:
         # Initialize QA pipeline with a more reliable model
         qa_pipeline = pipeline(
@@ -36,10 +39,18 @@ def initialize_models():
         )
         logger.info("Feature extraction pipeline initialized successfully")
         
+        # Initialize zero-shot classification for auto-tagging
+        zero_shot_classifier = pipeline(
+            "zero-shot-classification",
+            model="facebook/bart-large-mnli"
+        )
+        logger.info("Zero-shot classifier initialized successfully")
+        
     except Exception as e:
         logger.error(f"Error loading pipelines: {e}")
         qa_pipeline = None
         feature_extraction_pipeline = None
+        zero_shot_classifier = None
 
 # Initialize models on startup
 initialize_models()
@@ -106,6 +117,113 @@ def split_text(text, max_length=512, overlap=50):
         start = end - overlap
     
     return chunks
+
+def extract_keywords(text, max_keywords=10):
+    """Extract important keywords from text for better tag suggestions"""
+    # Remove special characters and convert to lowercase
+    cleaned_text = re.sub(r'[^\w\s]', ' ', text.lower())
+    words = cleaned_text.split()
+    
+    # Filter out common stop words
+    stop_words = {'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'is', 'are', 'was', 'were', 'be', 'been', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might', 'can', 'this', 'that', 'these', 'those', 'i', 'you', 'he', 'she', 'it', 'we', 'they', 'me', 'him', 'her', 'us', 'them'}
+    
+    # Filter words longer than 3 characters and not in stop words
+    filtered_words = [word for word in words if len(word) > 3 and word not in stop_words]
+    
+    # Count word frequency
+    word_counts = Counter(filtered_words)
+    
+    # Return most common words as keywords
+    return [word for word, count in word_counts.most_common(max_keywords)]
+
+def generate_auto_tags(workspace_name, file_content=None):
+    """Generate automatic tags for workspace content or specific file"""
+    try:
+        if zero_shot_classifier is None:
+            return {"error": "Auto-tagging model not available"}
+        
+        workspace_path = ensure_workspace(workspace_name)
+        
+        if file_content:
+            content = file_content
+        else:
+            content = load_workspace_content(workspace_path)
+        
+        if not content.strip():
+            return {"tags": [], "message": "No content found to analyze"}
+        
+        # Predefined tag categories
+        candidate_labels = [
+            "meeting", "strategy", "research", "todo", "idea", "project", "documentation",
+            "notes", "planning", "brainstorming", "analysis", "report", "presentation",
+            "technical", "business", "creative", "personal", "urgent", "completed",
+            "in-progress", "review", "collaboration", "learning", "reference"
+        ]
+        
+        # Extract keywords for additional context
+        keywords = extract_keywords(content)
+        
+        # Split content into manageable chunks
+        chunks = split_text(content, max_length=400)
+        
+        all_tags = []
+        tag_confidence = {}
+        
+        for chunk in chunks[:5]:  # Analyze first 5 chunks to avoid overwhelming the model
+            if len(chunk.split()) < 10:  # Skip very short chunks
+                continue
+                
+            try:
+                result = zero_shot_classifier(chunk, candidate_labels)
+                
+                # Filter tags with confidence > 0.3
+                for label, score in zip(result['labels'], result['scores']):
+                    if score > 0.3:
+                        if label not in tag_confidence:
+                            tag_confidence[label] = []
+                        tag_confidence[label].append(score)
+                        
+            except Exception as e:
+                logger.error(f"Error processing chunk: {e}")
+                continue
+        
+        # Average confidence scores and select top tags
+        final_tags = []
+        for tag, scores in tag_confidence.items():
+            avg_confidence = sum(scores) / len(scores)
+            if avg_confidence > 0.4:  # Higher threshold for final selection
+                final_tags.append({
+                    "name": tag,
+                    "confidence": round(avg_confidence, 3),
+                    "auto_generated": True
+                })
+        
+        # Sort by confidence and take top 10
+        final_tags.sort(key=lambda x: x['confidence'], reverse=True)
+        final_tags = final_tags[:10]
+        
+        # Add keyword-based tags if we have few auto-generated tags
+        if len(final_tags) < 5 and keywords:
+            for keyword in keywords[:3]:
+                final_tags.append({
+                    "name": keyword,
+                    "confidence": 0.5,
+                    "auto_generated": True,
+                    "type": "keyword"
+                })
+        
+        logger.info(f"Generated {len(final_tags)} tags for workspace '{workspace_name}'")
+        
+        return {
+            "tags": final_tags,
+            "keywords": keywords[:5],
+            "total_content_length": len(content),
+            "chunks_analyzed": min(len(chunks), 5)
+        }
+        
+    except Exception as e:
+        logger.error(f"Error generating auto tags: {e}")
+        return {"error": f"Failed to generate tags: {str(e)}"}
 
 def answer_question_from_workspace(workspace_name, question):
     try:
@@ -221,6 +339,25 @@ def ask_question():
     
     except Exception as e:
         logger.error(f"Error in ask_question: {e}")
+        return jsonify({'error': 'An unexpected error occurred'}), 500
+
+@app.route('/generate_tags', methods=['POST'])
+def generate_tags():
+    try:
+        data = request.json
+        workspace_name = data.get('workspace')
+        file_content = data.get('content')  # Optional: specific content to tag
+
+        if not workspace_name:
+            return jsonify({'error': 'Missing workspace name'}), 400
+
+        logger.info(f"Generating tags for workspace '{workspace_name}'")
+        result = generate_auto_tags(workspace_name, file_content)
+        
+        return jsonify(result)
+    
+    except Exception as e:
+        logger.error(f"Error in generate_tags: {e}")
         return jsonify({'error': 'An unexpected error occurred'}), 500
 
 @app.route('/extract_links', methods=['POST'])

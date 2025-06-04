@@ -22,32 +22,43 @@ export const WorkspaceSelector: React.FC<WorkspaceSelectorProps> = ({
   onWorkspaceChange,
   className,
 }) => {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchWorkspaces = async () => {
-      if (!user) return;
+      if (!user || !session) {
+        setLoading(false);
+        return;
+      }
 
       try {
+        setError(null);
         const { data, error } = await supabase
           .from('workspaces')
           .select('id, name, description')
           .eq('owner_id', user.id)
           .order('name');
 
-        if (error) throw error;
+        if (error) {
+          console.error('Supabase error:', error);
+          setError(error.message);
+          return;
+        }
+
         setWorkspaces(data || []);
       } catch (error) {
         console.error('Error fetching workspaces:', error);
+        setError('Failed to load workspaces');
       } finally {
         setLoading(false);
       }
     };
 
     fetchWorkspaces();
-  }, [user]);
+  }, [user, session]);
 
   if (loading) {
     return (
@@ -59,11 +70,21 @@ export const WorkspaceSelector: React.FC<WorkspaceSelectorProps> = ({
     );
   }
 
+  if (error) {
+    return (
+      <Select disabled>
+        <SelectTrigger className={className}>
+          <SelectValue placeholder={`Error: ${error}`} />
+        </SelectTrigger>
+      </Select>
+    );
+  }
+
   if (workspaces.length === 0) {
     return (
       <Select disabled>
         <SelectTrigger className={className}>
-          <SelectValue placeholder="No workspaces available" />
+          <SelectValue placeholder="No workspaces available - create one first" />
         </SelectTrigger>
       </Select>
     );
@@ -79,7 +100,7 @@ export const WorkspaceSelector: React.FC<WorkspaceSelectorProps> = ({
       </SelectTrigger>
       <SelectContent>
         {workspaces.map((workspace) => (
-          <SelectItem key={workspace.id} value={workspace.id}>
+          <SelectItem key={workspace.id} value={workspace.name}>
             <div className="flex flex-col">
               <span className="font-medium">{workspace.name}</span>
               {workspace.description && (
