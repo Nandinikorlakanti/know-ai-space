@@ -50,7 +50,7 @@ export const QuestionAnswering: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const response = await fetch('http://localhost:5000/ask', {
+      const response = await fetch('http://localhost:8000/ask', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -64,7 +64,7 @@ export const QuestionAnswering: React.FC = () => {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to get answer');
+        throw new Error(data.detail || 'Failed to get answer');
       }
 
       const aiResponse: Message = {
@@ -77,12 +77,11 @@ export const QuestionAnswering: React.FC = () => {
       setMessages(prev => [...prev, aiResponse]);
     } catch (error) {
       console.error('Error processing question:', error);
-      toast.error('Failed to process your question. Make sure the backend is running.');
+      toast.error('Failed to process your question. Make sure the FastAPI backend is running on port 8000.');
       
-      // Add error message to chat
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: 'Sorry, I encountered an error while processing your question. Please make sure the backend server is running and try again.',
+        content: 'Sorry, I encountered an error while processing your question. Please make sure the FastAPI backend server is running on port 8000 and try again.',
         isUser: false,
         timestamp: new Date(),
       };

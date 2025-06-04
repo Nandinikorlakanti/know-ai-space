@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Zap, Link, X, Check, Brain, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -17,6 +18,7 @@ interface AILinkerProps {
   cursorPosition: number;
   onLinkSuggestion: (pageId: string, text: string) => void;
   onDismiss: () => void;
+  workspace?: string;
 }
 
 export const AILinker: React.FC<AILinkerProps> = ({
@@ -24,25 +26,22 @@ export const AILinker: React.FC<AILinkerProps> = ({
   currentText,
   cursorPosition,
   onLinkSuggestion,
-  onDismiss
+  onDismiss,
+  workspace = 'default-workspace'
 }) => {
   const [suggestions, setSuggestions] = useState<LinkSuggestion[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const generateSuggestions = async (text: string): Promise<LinkSuggestion[]> => {
-    // For now, use the current workspace - in a real implementation,
-    // you'd get this from context or props
-    const currentWorkspace = 'default-workspace';
-    
     try {
-      const response = await fetch('http://localhost:5000/extract_links', {
+      const response = await fetch('http://localhost:8000/extract_links', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          workspace: currentWorkspace,
+          workspace: workspace,
           text: text,
         }),
       });
@@ -50,7 +49,7 @@ export const AILinker: React.FC<AILinkerProps> = ({
       const data = await response.json();
 
       if (!response.ok) {
-        console.error('Failed to get suggestions:', data.error);
+        console.error('Failed to get suggestions:', data.detail);
         return [];
       }
 
@@ -76,7 +75,7 @@ export const AILinker: React.FC<AILinkerProps> = ({
     } else {
       setSuggestions([]);
     }
-  }, [isActive, currentText]);
+  }, [isActive, currentText, workspace]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

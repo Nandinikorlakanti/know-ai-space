@@ -50,17 +50,17 @@ export const AILinker: React.FC = () => {
 
     setIsLoadingDocs(true);
     try {
-      const response = await fetch(`http://localhost:5000/workspace_documents/${selectedWorkspace}`);
+      const response = await fetch(`http://localhost:8000/workspace_documents/${selectedWorkspace}`);
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to fetch documents');
+        throw new Error(data.detail || 'Failed to fetch documents');
       }
 
       setDocuments(data.documents || []);
     } catch (error) {
       console.error('Error fetching documents:', error);
-      toast.error('Failed to load workspace documents');
+      toast.error('Failed to load workspace documents. Make sure the FastAPI backend is running on port 8000.');
       setDocuments([]);
     } finally {
       setIsLoadingDocs(false);
@@ -77,7 +77,7 @@ export const AILinker: React.FC = () => {
     setSuggestions([]);
 
     try {
-      const response = await fetch('http://localhost:5000/extract_links', {
+      const response = await fetch('http://localhost:8000/extract_links', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -91,7 +91,7 @@ export const AILinker: React.FC = () => {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to analyze text');
+        throw new Error(data.detail || 'Failed to analyze text');
       }
 
       setSuggestions(data.suggestions || []);
@@ -104,7 +104,7 @@ export const AILinker: React.FC = () => {
 
     } catch (error) {
       console.error('Error analyzing text:', error);
-      toast.error('Failed to analyze text. Make sure the backend is running.');
+      toast.error('Failed to analyze text. Make sure the FastAPI backend is running on port 8000.');
     } finally {
       setIsAnalyzing(false);
     }
@@ -186,13 +186,13 @@ export const AILinker: React.FC = () => {
             <CardHeader>
               <CardTitle className="text-white flex items-center">
                 <FileText className="mr-2 h-5 w-5" />
-                Select Page/Document
+                Select Page/Document (Optional)
               </CardTitle>
             </CardHeader>
             <CardContent>
               <Select value={selectedPage} onValueChange={setSelectedPage} disabled={isLoadingDocs}>
                 <SelectTrigger className="bg-white/5 border-white/20 text-white">
-                  <SelectValue placeholder={isLoadingDocs ? "Loading documents..." : "Choose a document to analyze"} />
+                  <SelectValue placeholder={isLoadingDocs ? "Loading documents..." : "Choose a document (optional)"} />
                 </SelectTrigger>
                 <SelectContent>
                   {documents.map((doc) => (
@@ -202,6 +202,11 @@ export const AILinker: React.FC = () => {
                   ))}
                 </SelectContent>
               </Select>
+              {documents.length === 0 && !isLoadingDocs && selectedWorkspace && (
+                <p className="text-sm text-gray-400 mt-2">
+                  No documents found in this workspace. Add some content first.
+                </p>
+              )}
             </CardContent>
           </Card>
         )}
